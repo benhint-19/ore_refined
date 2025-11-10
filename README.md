@@ -3,7 +3,7 @@
 ORE Refined is a mining program optimized for ORE, helping you maximize the conversion of ORE to unclaimORE.
 
 ### How does it work？
-The project is divided into two parts: the off chain program and the onchain program. This project is the off chain program and is 100% open source. The onchain program is closed source code.  the mine parameter will be passed to the onchain program, and ultimately the onchain program will calculate the EV and deploy the SOL.
+The project is divided into two parts: the off-chain program and the on-chain program. This project is the off chain program and is 100% open source. The onchain program is closed source code.  the mine parameter will be passed to the onchain program, and ultimately the onchain program will calculate the EV and deploy the SOL.
 
 ### Why should I use this project to refined ORE
 If you want to maximize your ORE to unclaimed ORE conversion rate, you need to deploy sol at the squares of the best EV. Calculating EV and deploying square to the optimal EV is a complex process. ORE REFINED will do it for you.

@@ -48,13 +48,9 @@ declare_program!(ore_por_program);
 pub const DEFALUT_UNITS: u64 = 400_000;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // 初始化日志订阅器
     tracing_subscriber::fmt::init();
     let args = Args::parse();
     info!("Args: {:?}", args);
-
-    // 之后的日志会被正确格式化输出
-    info!("程序启动");
 
 
     let commitment = CommitmentConfig::processed();
@@ -99,11 +95,9 @@ async fn get_balance(
     }
 
 
-    //获取sol余额
     let sol_balance = rpc.get_balance(&payer.pubkey()).await?;
 
 
-    // 获取pair的ORE token地址
     let ore_ata_address = get_associated_token_address(&payer.pubkey(), &pubkey!("oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp"));
     let ore_amount = rpc.get_token_account_balance(&ore_ata_address).await?;
     let wallet_ore = ore_amount.amount.parse::<u64>().unwrap_or(0);
@@ -225,16 +219,13 @@ async fn update_board_loop(
 ) -> anyhow::Result<()> {
     tokio::spawn(async move {
         loop {
-            // 获取新的市场数据
             let new_board = get_board(&rpc_client).await.unwrap();
 
-            // 获取锁并更新数据
             {
                 let mut board_guard = board.lock().await;
                 *board_guard = new_board;
             }
 
-            // 添加延时避免过于频繁的请求
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
     });
@@ -248,16 +239,13 @@ async fn update_miner_loop(
 ) -> anyhow::Result<()> {
     tokio::spawn(async move {
         loop {
-            // 获取新的miner
             let new_miner = get_miner(&rpc, payer.pubkey()).await.unwrap();
 
-            // 获取锁并更新数据
             {
                 let mut miner_guard = miner.lock().await;
                 *miner_guard = new_miner;
             }
 
-            // 添加延时避免过于频繁的请求
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
     });
@@ -267,16 +255,13 @@ async fn update_miner_loop(
 async fn update_clock_loop(rpc: Arc<RpcClient>, clock: Arc<Mutex<Clock>>) -> anyhow::Result<()> {
     tokio::spawn(async move {
         loop {
-            // 获取新的clock
             let new_clock = get_clock(&rpc).await.unwrap();
 
-            // 获取锁并更新数据
             {
                 let mut clock_guard = clock.lock().await;
                 *clock_guard = new_clock;
             }
 
-            // 添加延时避免过于频繁的请求
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
     });
