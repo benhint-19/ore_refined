@@ -19,7 +19,7 @@ solana-program = "^2.1"
 solana-client = "^2.1"
 solana-sdk = "^2.1"
 spl-token = { version = "^4", features = ["no-entrypoint"] }
-ore-api = { path = "../ore/api" }
+ore-api = { git = "https://github.com/regolith-labs/ore", branch = "master" }
 
 steel = { features = ["spl"], version = "4.0.2" }
 tokio = { version = "1.36", features = ["full"] }
@@ -36,7 +36,6 @@ rand = "0.8.5"
 futures-util = "0.3.31"
 serde = { version = "1.0.219", features = ["derive"] }
 eyre = "0.6.12"
-constant = "0.2.0"
 tokio-tungstenite = "0.20.1"
 clap = { version = "4.5.48", features = ["derive"] }
 solana-transaction-status = "3.0.3"

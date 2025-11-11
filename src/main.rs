@@ -181,7 +181,6 @@ async fn on_chain_main(
         let claim_sol_ix = claim_sol(payer.pubkey());
         let ixs = [checkpoint_ix.clone(),refined_ix.clone(),claim_sol_ix];
 
-        // send ixs by rpc
         if slot_left > 1 {
             let simulate_result = simulate_transaction(&rpc, &payer, &ixs).await?;
             let mut units_consumed = simulate_result.value.units_consumed.unwrap_or(0);
