@@ -62,3 +62,5 @@ $ cd ore_refined
 Deploy only in the final N slots of each round. For example, remaining_slots = 5 limits deployments to the last 5 slots (one slot ≈ 400 ms). Deploying later reduces the chance other deployments change the EV before your transaction lands, but setting this too low may miss rounds.
 ### 2. ore_refined_rate
 Expected ORE required to obtain 1 unclaimed ORE. For example, ore_refined_rate = 1.3 means you accept up to 1.3 ORE per unclaimed ORE. A higher value increases deployment frequency (faster conversion) but accepts worse conversion efficiency; a lower value is stricter and results in fewer
+
+The minimum value is 0.9, meaning that it will only be deployed when SOL worth approximately 0.9 ORE can be mined to 1 unclaimed ORE.
