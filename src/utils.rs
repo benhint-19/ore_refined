@@ -76,14 +76,24 @@ pub async fn get_miner_optional(rpc: &RpcClient, authority: Pubkey) -> Result<Op
         }
         Err(e) => {
             // Check if it's an account not found error - handle various error formats
-            let error_str = e.to_string().to_lowercase();
+            let error_str = format!("{:?}", e).to_lowercase();
+            let error_msg = e.to_string().to_lowercase();
+            
+            // Check for account not found errors in various formats
             if error_str.contains("could not find account") || 
                error_str.contains("invalid param") ||
                error_str.contains("account not found") ||
-               error_str.contains("-32602") {
+               error_str.contains("-32602") ||
+               error_msg.contains("could not find account") ||
+               error_msg.contains("invalid param") ||
+               error_msg.contains("-32602") {
+                log::info!("Miner account not found - will be created on first transaction");
                 Ok(None)
             } else {
-                Err(e.into())
+                // For other errors, still return None to allow mining to proceed
+                // The account will be created on first transaction anyway
+                log::warn!("Error fetching miner account (will retry): {:?}", e);
+                Ok(None)
             }
         }
     }
