@@ -1,6 +1,9 @@
 use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use solana_client::client_error::reqwest;
+use once_cell::sync::Lazy;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PriceInfo {
@@ -13,7 +16,27 @@ struct PriceInfo {
     pub price_change24h: f64,
 }
 
+struct PriceCache {
+    ore_price: f64,
+    sol_price: f64,
+    last_fetch: Instant,
+}
+
+static PRICE_CACHE: Lazy<Mutex<Option<PriceCache>>> = Lazy::new(|| Mutex::new(None));
+const CACHE_DURATION: Duration = Duration::from_secs(30); // Cache prices for 30 seconds
+
 pub async fn get_price() -> anyhow::Result<(f64, f64)> {
+    // Check cache first
+    {
+        let cache_guard = PRICE_CACHE.lock().unwrap();
+        if let Some(cache) = cache_guard.as_ref() {
+            if cache.last_fetch.elapsed() < CACHE_DURATION {
+                return Ok((cache.ore_price, cache.sol_price));
+            }
+        }
+    }
+    
+    // Fetch new prices
     let url = "https://lite-api.jup.ag/price/v3?ids=So11111111111111111111111111111111111111112,oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp";
     
     let resp = match reqwest::get(url).await {
@@ -54,9 +77,33 @@ pub async fn get_price() -> anyhow::Result<(f64, f64)> {
     let ore_price = prices.get("oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp");
     let sol_price = prices.get("So11111111111111111111111111111111111111112");
     if let (Some(ore), Some(sol)) = (ore_price, sol_price) {
-        return Ok((ore.usd_price, sol.usd_price));
+        let result = (ore.usd_price, sol.usd_price);
+        
+        // Update cache
+        {
+            let mut cache_guard = PRICE_CACHE.lock().unwrap();
+            *cache_guard = Some(PriceCache {
+                ore_price: ore.usd_price,
+                sol_price: sol.usd_price,
+                last_fetch: Instant::now(),
+            });
+        }
+        
+        return Ok(result);
     }
     
     log::warn!("Price data missing for ORE or SOL, using defaults");
-    Ok((0.01, 100.0)) // Default prices if data is missing
+    let defaults = (0.01, 100.0);
+    
+    // Cache defaults too (but with shorter duration)
+    {
+        let mut cache_guard = PRICE_CACHE.lock().unwrap();
+        *cache_guard = Some(PriceCache {
+            ore_price: defaults.0,
+            sol_price: defaults.1,
+            last_fetch: Instant::now(),
+        });
+    }
+    
+    Ok(defaults) // Default prices if data is missing
 }
