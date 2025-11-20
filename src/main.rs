@@ -88,8 +88,27 @@ async fn get_balance(
     let sol_balance = rpc.get_balance(&payer.pubkey()).await?;
 
     let ore_ata_address = get_associated_token_address(&payer.pubkey(), &pubkey!("oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp"));
-    let ore_amount = rpc.get_token_account_balance(&ore_ata_address).await?;
-    let wallet_ore = ore_amount.amount.parse::<u64>().unwrap_or(0);
+    let wallet_ore = match rpc.get_token_account_balance(&ore_ata_address).await {
+        Ok(ore_amount) => ore_amount.amount.parse::<u64>().unwrap_or(0),
+        Err(e) => {
+            // Token account doesn't exist yet - that's fine, balance is 0
+            let error_str = format!("{:?}", e).to_lowercase();
+            let error_msg = e.to_string().to_lowercase();
+            if error_str.contains("could not find account") || 
+               error_str.contains("invalid param") ||
+               error_str.contains("-32602") ||
+               error_msg.contains("could not find account") ||
+               error_msg.contains("invalid param") ||
+               error_msg.contains("-32602") {
+                info!("ORE token account not found - balance is 0");
+                0
+            } else {
+                // For other errors, log but assume 0 balance
+                log::warn!("Error fetching ORE token balance: {:?}, assuming 0", e);
+                0
+            }
+        }
+    };
 
     if let Some(mut miner) = miner_opt {
         let treasury = get_treasury(&rpc).await?;
