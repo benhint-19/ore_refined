@@ -1,0 +1,16 @@
+# Vercel Environment Variables
+# Set these in your Vercel project settings
+
+# Solana RPC URL (recommended: Helius)
+RPC_URL=https://api.mainnet-beta.solana.com
+
+# Mining parameters
+PER_ROUND_DEPLOY_AMOUNT=0.0001
+REMAINING_SLOTS=15
+ORE_REFINED_RATE=1.3
+
+# Keypair (stored as environment variable, converted to file at runtime)
+# Note: The private key should be stored securely in Vercel's environment variables
+PRIVATE_KEY=5tk76qXqGEuCWp25S9Rsws76WJprwdW15RekPVqUyiFGSpJZDUd5tZQszKXTPAZEjVjVQLehzTaSgFi1Jxf8RdiR
+PUBLIC_KEY=8BEuH1JdD5wTVJfBh2y6htgjiBUyuZ1keDLdi1FpU39b
+

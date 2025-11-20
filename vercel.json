@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm run vercel-build",
+  "functions": {
+    "api/mining.js": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/mining",
+      "schedule": "*/1 * * * *"
+    }
+  ]
+}

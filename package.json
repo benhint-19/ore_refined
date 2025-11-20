@@ -1,0 +1,16 @@
+{
+  "name": "ore-refined",
+  "version": "0.1.0",
+  "description": "ORE Refined mining program for Vercel deployment",
+  "type": "module",
+  "scripts": {
+    "create-keypair": "node scripts/create-keypair.js",
+    "vercel-build": "node scripts/build-keypair.js"
+  },
+  "dependencies": {
+    "bs58": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
