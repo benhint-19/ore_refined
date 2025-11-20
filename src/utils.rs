@@ -75,9 +75,12 @@ pub async fn get_miner_optional(rpc: &RpcClient, authority: Pubkey) -> Result<Op
             Ok(Some(*miner))
         }
         Err(e) => {
-            // Check if it's an account not found error
-            if e.to_string().contains("could not find account") || 
-               e.to_string().contains("Invalid param") {
+            // Check if it's an account not found error - handle various error formats
+            let error_str = e.to_string().to_lowercase();
+            if error_str.contains("could not find account") || 
+               error_str.contains("invalid param") ||
+               error_str.contains("account not found") ||
+               error_str.contains("-32602") {
                 Ok(None)
             } else {
                 Err(e.into())
