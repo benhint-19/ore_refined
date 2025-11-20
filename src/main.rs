@@ -178,8 +178,28 @@ async fn on_chain_main(
         let clock = clock_mutex.lock().await.clone();
         let miner = miner_mutex.lock().await.clone();
         let round_id = board.round_id;
-        let (mut ore_price,mut sol_price) = get_price().await?;
+        let slot_left = board.end_slot.saturating_sub(clock.slot);
 
+        info!("round_id: {:?} slot_left: {:?}", round_id, slot_left);
+
+        // Skip if round has ended (slot_left = 0) - wait for board to update to new round
+        if slot_left == 0 {
+            // Force a board refresh when round ends to catch new round faster
+            let fresh_board = get_board(&rpc).await?;
+            {
+                let mut board_guard = board_mutex.lock().await;
+                *board_guard = fresh_board;
+            }
+            // Check if board updated to new round
+            if fresh_board.round_id != round_id {
+                info!("Board updated to new round: {} -> {}", round_id, fresh_board.round_id);
+                last_round_id = fresh_board.round_id;
+            }
+            continue;
+        }
+
+        // Get prices only when we might actually deploy
+        let (mut ore_price,mut sol_price) = get_price().await?;
 
         if last_round_id != round_id {
             info!("New round detected: {}", round_id);
@@ -189,20 +209,8 @@ async fn on_chain_main(
             info!("SOL price: {} USDC", sol_price);
         }
 
-
-
-
-        let slot_left = board.end_slot.saturating_sub(clock.slot);
-
-        info!("round_id: {:?} slot_left: {:?}", round_id, slot_left);
-
         // Skip if round hasn't reached the deployment window yet
         if slot_left > args.remaining_slots as u64 {
-            continue;
-        }
-
-        // Skip if round has ended (slot_left = 0) - wait for board to update to new round
-        if slot_left == 0 {
             continue;
         }
 
