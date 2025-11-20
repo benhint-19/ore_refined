@@ -15,8 +15,8 @@ git push
 3. Connect your repository
 4. Render auto-detects `render.yaml`
 5. Set environment variables:
-   - `RPC_URL` (your Solana RPC)
    - `PRIVATE_KEY=5tk76qXqGEuCWp25S9Rsws76WJprwdW15RekPVqUyiFGSpJZDUd5tZQszKXTPAZEjVjVQLehzTaSgFi1Jxf8RdiR`
+   - `RPC_URL` (optional - defaults to `https://api.mainnet-beta.solana.com` in render.yaml)
 6. Click "Apply"
 
 ### Manual Setup

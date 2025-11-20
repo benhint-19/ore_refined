@@ -40,6 +40,7 @@ use tokio::select;
 use tokio::sync::Mutex;
 use tracing::info;
 use utils::*;
+
 use crate::jito::send_bundle;
 use crate::price::get_price;
 
@@ -82,36 +83,40 @@ async fn get_balance(
     rpc: &Arc<RpcClient>,
     payer: &Arc<Keypair>,
 ) -> anyhow::Result<()> {
-    let mut miner = get_miner(&rpc, payer.pubkey()).await?;
-
-    let treasury = get_treasury(&rpc).await?;
-    if treasury.miner_rewards_factor > miner.rewards_factor {
-        let accumulated_rewards = treasury.miner_rewards_factor - miner.rewards_factor;
-        if accumulated_rewards < Numeric::ZERO {
-            panic!("Accumulated rewards is negative");
-        }
-        let personal_rewards = accumulated_rewards * Numeric::from_u64(miner.rewards_ore);
-        miner.refined_ore += personal_rewards.to_u64();
-    }
-
+    let miner_opt = get_miner_optional(&rpc, payer.pubkey()).await?;
 
     let sol_balance = rpc.get_balance(&payer.pubkey()).await?;
-
 
     let ore_ata_address = get_associated_token_address(&payer.pubkey(), &pubkey!("oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp"));
     let ore_amount = rpc.get_token_account_balance(&ore_ata_address).await?;
     let wallet_ore = ore_amount.amount.parse::<u64>().unwrap_or(0);
 
+    if let Some(mut miner) = miner_opt {
+        let treasury = get_treasury(&rpc).await?;
+        if treasury.miner_rewards_factor > miner.rewards_factor {
+            let accumulated_rewards = treasury.miner_rewards_factor - miner.rewards_factor;
+            if accumulated_rewards < Numeric::ZERO {
+                panic!("Accumulated rewards is negative");
+            }
+            let personal_rewards = accumulated_rewards * Numeric::from_u64(miner.rewards_ore);
+            miner.refined_ore += personal_rewards.to_u64();
+        }
 
-
-    info!("wallet: {:?} sol:{:.2} unclaimed_sol:{}\t \t wallet_ore:{:.2} \t unclaimed_ore: {:.2} \t refined_ore: {:.2}",
-                payer.pubkey(),
-                amount_to_ui_amount(sol_balance, 9),
-                amount_to_ui_amount(miner.rewards_sol, 9),
-                amount_to_ui_amount(wallet_ore, TOKEN_DECIMALS),
-                amount_to_ui_amount(miner.rewards_ore, TOKEN_DECIMALS),
-                amount_to_ui_amount(miner.refined_ore, TOKEN_DECIMALS),
-    );
+        info!("wallet: {:?} sol:{:.2} unclaimed_sol:{}\t \t wallet_ore:{:.2} \t unclaimed_ore: {:.2} \t refined_ore: {:.2}",
+                    payer.pubkey(),
+                    amount_to_ui_amount(sol_balance, 9),
+                    amount_to_ui_amount(miner.rewards_sol, 9),
+                    amount_to_ui_amount(wallet_ore, TOKEN_DECIMALS),
+                    amount_to_ui_amount(miner.rewards_ore, TOKEN_DECIMALS),
+                    amount_to_ui_amount(miner.refined_ore, TOKEN_DECIMALS),
+        );
+    } else {
+        info!("wallet: {:?} sol:{:.2} wallet_ore:{:.2} (miner account not initialized yet - will be created on first transaction)",
+                    payer.pubkey(),
+                    amount_to_ui_amount(sol_balance, 9),
+                    amount_to_ui_amount(wallet_ore, TOKEN_DECIMALS),
+        );
+    }
 
     Ok(())
 }
@@ -124,7 +129,16 @@ async fn on_chain_main(
 ) -> anyhow::Result<()> {
     let board_mutex = Arc::new(Mutex::new(get_board(&rpc).await?));
     let clock_mutex = Arc::new(Mutex::new(get_clock(&rpc).await?));
-    let miner_mutex = Arc::new(Mutex::new(get_miner(&rpc,payer.pubkey()).await?));
+    
+    // Try to get miner, but don't fail if it doesn't exist yet
+    // The miner account will be created automatically on first transaction
+    let miner_mutex = match get_miner_optional(&rpc, payer.pubkey()).await? {
+        Some(miner) => Arc::new(Mutex::new(Some(miner))),
+        None => {
+            info!("Miner account not found - will be created on first transaction");
+            Arc::new(Mutex::new(None))
+        }
+    };
     let round_mutex = Arc::new(Mutex::new(get_round(&rpc,board_mutex.lock().await.round_id).await?));
 
     update_board_loop(rpc.clone(), board_mutex.clone()).await?;
@@ -167,7 +181,8 @@ async fn on_chain_main(
             continue;
         }
 
-        let checkpoint_ix = checkpoint(payer.pubkey(), payer.pubkey(), miner.round_id);
+        let miner_round_id = miner_mutex.lock().await.as_ref().map(|m| m.round_id).unwrap_or(0);
+        let checkpoint_ix = checkpoint(payer.pubkey(), payer.pubkey(), miner_round_id);
         let refined_ix = get_ore_refined_ix(
             payer.pubkey(),
             round_id,
@@ -234,15 +249,22 @@ async fn update_board_loop(
 async fn update_miner_loop(
     rpc: Arc<RpcClient>,
     payer: Arc<Keypair>,
-    miner: Arc<Mutex<Miner>>,
+    miner: Arc<Mutex<Option<Miner>>>,
 ) -> anyhow::Result<()> {
     tokio::spawn(async move {
         loop {
-            let new_miner = get_miner(&rpc, payer.pubkey()).await.unwrap();
-
-            {
-                let mut miner_guard = miner.lock().await;
-                *miner_guard = new_miner;
+            match get_miner_optional(&rpc, payer.pubkey()).await {
+                Ok(Some(new_miner)) => {
+                    let mut miner_guard = miner.lock().await;
+                    *miner_guard = Some(new_miner);
+                }
+                Ok(None) => {
+                    // Miner account doesn't exist yet, keep waiting
+                }
+                Err(e) => {
+                    // Log error but continue
+                    log::warn!("Error fetching miner: {}", e);
+                }
             }
 
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;

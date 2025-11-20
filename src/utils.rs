@@ -67,6 +67,25 @@ pub async fn get_miner(rpc: &RpcClient, authority: Pubkey) -> Result<Miner, anyh
     Ok(*miner)
 }
 
+pub async fn get_miner_optional(rpc: &RpcClient, authority: Pubkey) -> Result<Option<Miner>, anyhow::Error> {
+    let miner_pda = ore_api::state::miner_pda(authority);
+    match rpc.get_account(&miner_pda.0).await {
+        Ok(account) => {
+            let miner = Miner::try_from_bytes(&account.data)?;
+            Ok(Some(*miner))
+        }
+        Err(e) => {
+            // Check if it's an account not found error
+            if e.to_string().contains("could not find account") || 
+               e.to_string().contains("Invalid param") {
+                Ok(None)
+            } else {
+                Err(e.into())
+            }
+        }
+    }
+}
+
 pub async fn get_clock(rpc: &RpcClient) -> Result<Clock, anyhow::Error> {
     let data = rpc.get_account_data(&solana_sdk::sysvar::clock::ID).await?;
     let clock = bincode::deserialize::<Clock>(&data)?;

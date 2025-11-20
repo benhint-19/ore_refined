@@ -8,6 +8,7 @@ services:
     startCommand: ./scripts/start.sh
     envVars:
       - key: RPC_URL
+        value: https://api.mainnet-beta.solana.com
         sync: false
       - key: PRIVATE_KEY
         sync: false

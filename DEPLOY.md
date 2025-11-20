@@ -50,6 +50,8 @@ RPC_URL=https://api.mainnet-beta.solana.com
 PRIVATE_KEY=5tk76qXqGEuCWp25S9Rsws76WJprwdW15RekPVqUyiFGSpJZDUd5tZQszKXTPAZEjVjVQLehzTaSgFi1Jxf8RdiR
 ```
 
+**Note:** `RPC_URL` is pre-configured in `render.yaml` to `https://api.mainnet-beta.solana.com`. You can override it in Render dashboard if you have a better RPC endpoint.
+
 **Optional (defaults already in render.yaml):**
 ```
 PER_ROUND_DEPLOY_AMOUNT=0.0001
