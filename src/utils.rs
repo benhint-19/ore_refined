@@ -195,7 +195,14 @@ pub async fn submit_transaction_with_ixs(
         ..Default::default()
     };
     rpc.send_transaction_with_config(&transaction,config).await?;
-    info!("Transaction sent: {}", transaction.signatures[0]);
+    let signature = transaction.signatures[0];
+    info!("Transaction sent: {}", signature);
+    
+    // Log transaction details for debugging
+    if let Some(ix) = instructions.first() {
+        info!("Transaction contains {} instructions, signature: {}", instructions.len(), signature);
+    }
+    
     Ok(())
 }
 

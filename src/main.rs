@@ -201,13 +201,17 @@ async fn on_chain_main(
         }
 
         let miner_round_id = miner_mutex.lock().await.as_ref().map(|m| m.round_id).unwrap_or(0);
+        let deploy_amount_lamports = (args.per_round_deploy_amount * 1e9f64) as u64;
+        info!("Preparing transaction for round {}: deploy_amount={} lamports ({:.6} SOL)", 
+            round_id, deploy_amount_lamports, args.per_round_deploy_amount);
+        
         let checkpoint_ix = checkpoint(payer.pubkey(), payer.pubkey(), miner_round_id);
         let refined_ix = get_ore_refined_ix(
             payer.pubkey(),
             round_id,
             ore_price,
             sol_price,
-            (args.per_round_deploy_amount * 1e9f64) as u64,
+            deploy_amount_lamports,
             args.remaining_slots,
             args.ore_refined_rate,
             req_id,
