@@ -17,7 +17,7 @@ if [ ! -f "keypair.json" ]; then
 fi
 
 # Set default values if not provided
-RPC_URL=${RPC_URL:-"https://api.mainnet-beta.solana.com"}
+RPC_URL=${RPC_URL:-"https://solana.drpc.org"}
 PER_ROUND_DEPLOY_AMOUNT=${PER_ROUND_DEPLOY_AMOUNT:-"0.0001"}
 REMAINING_SLOTS=${REMAINING_SLOTS:-"15"}
 ORE_REFINED_RATE=${ORE_REFINED_RATE:-"1.3"}
