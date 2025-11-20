@@ -196,7 +196,13 @@ async fn on_chain_main(
 
         info!("round_id: {:?} slot_left: {:?}", round_id, slot_left);
 
+        // Skip if round hasn't reached the deployment window yet
         if slot_left > args.remaining_slots as u64 {
+            continue;
+        }
+
+        // Skip if round has ended (slot_left = 0) - wait for board to update to new round
+        if slot_left == 0 {
             continue;
         }
 
